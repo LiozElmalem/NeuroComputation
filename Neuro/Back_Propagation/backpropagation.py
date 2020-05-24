@@ -214,7 +214,7 @@ def simulation():
 	# normalize input variables
 	minmax = dataset_minmax(dataset)
 	normalize_dataset(dataset, minmax)
-	# evaluate algorithm
+	# evaluate algorithm	
 	print(dataset)
 	n_folds = 5
 	l_rate = 0.3
