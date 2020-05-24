@@ -1,12 +1,153 @@
-from random import seed
-from random import randrange
-from random import random
+import string
+import math
+import random
 from csv import reader
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
-from math import exp
- 
- 
+
+
+class Neural:
+	def __init__(self):
+		#
+		# Lets take 2 input outputNodes, 3 hidden outputNodes and 1 output outputNode.
+		# Hence, Number of outputNodes in input(ni)=2, hidden(hiddenNo)=3, output(outputNo)=1.
+		#
+		self.inputNo = 3
+		self.hiddenNo = 3
+		self.outputNo = 1
+
+		#
+		# outputNow we need outputNode weights. We'll make a two dimensional array that maps outputNode from one layer to the next.
+		# i-th outputNode of one layer to j-th outputNode of the next.
+		#
+		self.wih = []
+		for i in range(self.inputNo):
+			self.wih.append([0.0] * self.hiddenNo)
+
+		self.who = []
+		for j in range(self.hiddenNo):
+			self.who.append([0.0] * self.outputNo)
+
+		#
+		# outputNow that weight matrices are created, make the activation matrices.
+		#
+		self.ai, self.ah, self.ao = [],[],[]
+		self.ai = [1.0] * self.inputNo
+		self.ah = [1.0] * self.hiddenNo
+		self.ao = [1.0] * self.outputNo
+
+		#
+		# To ensure outputNode weights are randomly assigned, with some bounds on values, we pass it through randomizeMatrix()
+		#
+		randomizeMatrix(self.wih,-0.2,0.2)
+		randomizeMatrix(self.who,-2.0,2.0)
+
+		#
+		# To incorporate momentum factor, introduce aoutputNother array for the 'previous change'.
+		#
+		self.cih = []
+		self.cho = []
+		for i in range(self.inputNo):
+			self.cih.append([0.0] * self.hiddenNo)
+		for j in range(self.hiddenNo):
+			self.cho.append([0.0] * self.outputNo)
+
+	# backpropagate() takes as input, the patterns entered, the target values and the obtained values.
+	# Based on these values, it adjusts the weights so as to balance out the error.
+	# Also, outputNow we have M, N for momentum and learning factors respectively.
+	def backpropagate(self, inputs, expected, output, N=0.5, M=0.1):
+		# We introduce a new matrix called the deltas (error) for the two layers output and hidden layer respectively.
+		output_deltas = [0.0] * self.outputNo
+		for k in range(self.outputNo):
+			# Error is equal to (Target value - Output value)
+			error = expected[k] - output[k]
+			output_deltas[k] = error * dsigmoid(self.ao[k])
+
+		# Change weights of hidden to output layer accordingly.
+		for j in range(self.hiddenNo):
+			for k in range(self.outputNo):
+				delta_weight = self.ah[j]  * output_deltas[k]
+				self.who[j][k] += (M * self.cho[j][k]) + N*delta_weight
+				self.cho[j][k] = delta_weight
+
+		# outputNow for the hidden layer.
+		hidden_deltas = [0.0] * self.hiddenNo
+		for j in range(self.hiddenNo):
+			# Error as given by formule is equal to the sum of (Weight from each outputNode in hidden layer times output delta of output outputNode)
+			# Hence delta for hidden layer = sum (self.who[j][k]*output_deltas[k])
+			error = 0.0
+			for k in range(self.outputNo):
+				error += self.who[j][k]  * output_deltas[k]
+			# outputNow, change in outputNode weight is given by dsigmoid() of activation of each hidden outputNode times the error.
+			hidden_deltas[j] = error * dsigmoid(self.ah[j])
+
+		for i in range(self.inputNo):
+			for j in range(self.hiddenNo):
+				delta_weight = hidden_deltas[j] * self.ai[i]
+				self.wih[i][j] += M*self.cih[i][j] + N*delta_weight
+				self.cih[i][j] = delta_weight
+
+	# Main testing function. Used after all the training and Backpropagation is completed.
+	def test(self, patterns):
+		accuary = 0
+		X = []
+		Y = []
+		for p in patterns:
+			inputs = p[0]
+			output = self.runNetwork(inputs)[0]
+			output = (1 if (output > 0.5) else 0)
+			Y.append(output)
+			target = p[1]
+			X.append(target)
+			accuary = (accuary + 1) if (output == target[0]) else accuary
+			print ('For input:', inputs, ' Output -->', output, '\tTarget: ', target)
+		print('Accuary : ' , accuary / len(patterns))
+		plot(Y,X)
+
+
+	# So, runNetwork was needed because, for every iteration over a pattern [] array, we need to feed the values.
+	def runNetwork(self, feed):
+		if(len(feed) != self.inputNo - 1):
+			print ('Error in number of input values.')
+
+		# First activate the ni-1 input outputNodes.
+		for i in range(self.inputNo - 1):
+			self.ai[i] = feed[i]
+
+		#
+		# Calculate the activations of each successive layer's outputNodes.
+		#
+		for j in range(self.hiddenNo):
+			sum=0.0
+			for i in range(self.inputNo):
+				sum+=self.ai[i]*self.wih[i][j]
+			# self.ah[j] will be the sigmoid of sum. # sigmoid(sum)
+			self.ah[j]=sigmoid(sum)
+
+		for k in range(self.outputNo):
+			sum=0.0
+			for j in range(self.hiddenNo):
+				sum+=self.ah[j]*self.who[j][k]
+			# self.ah[k] will be the sigmoid of sum. # sigmoid(sum)
+			self.ao[k] = sigmoid(sum)
+
+		return self.ao
+
+
+	def trainNetwork(self, pattern,iterations):
+		for i in range(iterations):
+			# Run the network for every set of input values, get the output values and Backpropagate them.
+			for p in pattern:
+				# Run the network for every tuple in p.
+				inputs = p[0]
+				out = self.runNetwork(inputs)
+				expected = p[1]
+				self.backpropagate(inputs,expected,out)
+		self.test(pattern)
+
+# End of class.
+
+
 def on_click(event):
     if event.dblclick:
         exit(0)
@@ -14,8 +155,8 @@ def on_click(event):
 def Exit(event):
     exit(1)
 
-def plot(A):
-    plt.plot(A)
+def plot(A,B):
+    plt.plot(A,B)
     plt.ylabel('Targets')
     plt.xlabel('Outputs')
     plt.title("Back propagation simulation")
@@ -25,7 +166,7 @@ def plot(A):
     button.on_clicked(Exit)
     plt.show() 
 
-# Load a CSV file
+
 def load_csv(filename):
 	dataset = list()
 	with open(filename, 'r') as file:
@@ -63,165 +204,44 @@ def normalize_dataset(dataset, minmax):
 	for row in dataset:
 		for i in range(len(row)-1):
 			row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
- 
-# Split a dataset into k folds
-def cross_validation_split(dataset, n_folds):
-	dataset_split = list()
-	dataset_copy = list(dataset)
-	fold_size = int(len(dataset) / n_folds)
-	for i in range(n_folds):
-		fold = list()
-		while len(fold) < fold_size:
-			index = randrange(len(dataset_copy))
-			fold.append(dataset_copy.pop(index))
-		dataset_split.append(fold)
-	return dataset_split
- 
-# Calculate accuracy percentage
-def accuracy_metric(actual, predicted):
-	correct = 0
-	for i in range(len(actual)):
-		if actual[i] == predicted[i]:
-			correct += 1
-	return correct / float(len(actual)) * 100.0 
 
-def meanAccuracy(scores):
-    print('Mean Accuracy: %.3f%%' % (sum(scores)/float(len(scores))))
+def getSeedDataSet():
+    filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
+    dataset = load_csv(filename)
+    for i in range(len(dataset[0])-1):
+        str_column_to_float(dataset, i)
+    # convert class column to integers
+    str_column_to_int(dataset, len(dataset[0])-1)
+    # normalize input variables
+    minmax = dataset_minmax(dataset)
+    normalize_dataset(dataset, minmax)
+    return dataset
 
-# Evaluate an algorithm using a cross validation split
-def evaluate_algorithm(dataset, algorithm, n_folds, *args):
-    folds = cross_validation_split(dataset, n_folds)
-    scores = list()
-    for fold in folds:
-        train_set = list(folds)
-        train_set.remove(fold)
-        train_set = sum(train_set, [])
-        test_set = list()
-        for row in fold:
-            row_copy = list(row)
-            test_set.append(row_copy)
-            row_copy[-1] = None
-        predicted = algorithm(train_set, test_set, *args)
-        actual = [row[-1] for row in fold]
-        accuracy = accuracy_metric(actual, predicted)
-        scores.append(accuracy) 
-    print('Scores: %s' % scores)
-    meanAccuracy(scores)
- 
-# Calculate neuron activation for an input
-def activate(weights, inputs):
-	activation = weights[-1]
-	for i in range(len(weights)-1):
-		activation += weights[i] * inputs[i]
-	return activation
- 
-# Transfer neuron activation
-def transfer(activation):
-	return 1.0 / (1.0 + exp(-activation))
- 
-# Forward propagate input to a network output
-def forward_propagate(network, row):
-	inputs = row
-	for layer in network:
-		new_inputs = []
-		for neuron in layer:
-			activation = activate(neuron['weights'], inputs)
-			neuron['output'] = transfer(activation)
-			new_inputs.append(neuron['output'])
-		inputs = new_inputs
-	return inputs
- 
-# Calculate the derivative of an neuron output
-def transfer_derivative(output):
-	return output * (1.0 - output)
- 
-# Backpropagate error and store in neurons
-def backward_propagate_error(network, expected):
-	for i in reversed(range(len(network))):
-		layer = network[i]
-		errors = list()
-		if i != len(network)-1:
-			for j in range(len(layer)):
-				error = 0.0
-				for neuron in network[i + 1]:
-					error += (neuron['weights'][j] * neuron['delta'])
-				errors.append(error)
-		else:
-			for j in range(len(layer)):
-				neuron = layer[j]
-				errors.append(expected[j] - neuron['output'])
-		for j in range(len(layer)):
-			neuron = layer[j]
-			neuron['delta'] = errors[j] * transfer_derivative(neuron['output'])
- 
-# Update network weights with error
-def update_weights(network, row, l_rate):
-    for i in range(len(network)):
-        inputs = row[:-1]
-        if i != 0:
-            inputs = [neuron['output'] for neuron in network[i - 1]]
-        for neuron in network[i]:
-            for j in range(len(inputs)):
-                neuron['weights'][j] += l_rate * neuron['delta'] * inputs[j]
-            neuron['weights'][-1] += l_rate * neuron['delta']
+def randomizeMatrix ( matrix, a, b):
+	for i in range ( len (matrix) ):
+		for j in range ( len (matrix[i]) ):
+			# For each of the weight matrix elements, assign a random weight uniformly between the two bounds.
+			matrix[i][j] = random.uniform(a,b)
 
-# Train a network for a fixed number of epochs
-def train_network(network, train, l_rate, n_epoch, n_outputs):
-	for epoch in range(n_epoch):
-		for row in train:
-			outputs = forward_propagate(network, row)
-			expected = [0 for i in range(n_outputs)]
-			expected[row[-1]] = 1
-			backward_propagate_error(network, expected)
-			update_weights(network, row, l_rate)
- 
-# Initialize a network
-def initialize_network(n_inputs, n_hidden, n_outputs):
-	network = list()
-	hidden_layer = [{'weights':[random() for i in range(n_inputs + 1)]} for i in range(n_hidden)]
-	network.append(hidden_layer)
-	output_layer = [{'weights':[random() for i in range(n_hidden + 1)]} for i in range(n_outputs)]
-	network.append(output_layer)
-	return network
- 
-# Make a prediction with a network
-def predict(network, row):
-	outputs = forward_propagate(network, row)
-	return outputs.index(max(outputs))
- 
-# Backpropagation Algorithm With Stochastic Gradient Descent
-def back_propagation(train, test, l_rate, n_epoch, n_hidden):
-	n_inputs = len(train[0]) - 1
-	n_outputs = len(set([row[-1] for row in train]))
-	network = initialize_network(n_inputs, n_hidden, n_outputs)
-	train_network(network, train, l_rate, n_epoch, n_outputs)
-	predictions = list()
-	for row in test:
-		prediction = predict(network, row)
-		predictions.append(prediction)
-	return(predictions)
- 
 
-def simulation():
-	seed(1)
-	# load and prepare data
-	filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
-	dataset = load_csv(filename)
-	for i in range(len(dataset[0])-1):
-		str_column_to_float(dataset, i)
-	# convert class column to integers
-	str_column_to_int(dataset, len(dataset[0])-1)
-	# normalize input variables
-	minmax = dataset_minmax(dataset)
-	normalize_dataset(dataset, minmax)
-	# evaluate algorithm	
-	print(dataset)
-	n_folds = 5
-	l_rate = 0.3
-	n_epoch = 500
-	n_hidden = 5
-	evaluate_algorithm(dataset, back_propagation, n_folds, l_rate, n_epoch, n_hidden)
-    
-if __name__ == '__main__':
-    simulation()    
+# outputNow for our function definition. Sigmoid.
+def sigmoid(x):
+	return 1 / (1 + math.exp(-x))
 
+
+# Sigmoid function derivative.
+def dsigmoid(y):
+	return y * (1 - y)
+
+
+def main():
+	# take the input pattern as a map. Suppose we are working for AND gate.
+    dataset = getSeedDataSet()
+    pat = []
+    for i in range(len(dataset)):
+        pat.append([dataset[i][:2] , dataset[i][7:]])
+    newNeural = Neural()
+    newNeural.trainNetwork(pat,2000)
+
+if __name__ == "__main__":
+	main()
