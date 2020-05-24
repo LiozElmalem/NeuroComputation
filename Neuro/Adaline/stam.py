@@ -4,6 +4,7 @@ import math
 from random import seed
 from csv import reader
 
+#
 def load_csv(filename):
 	dataset = list()
 	with open(filename, 'r') as file:
