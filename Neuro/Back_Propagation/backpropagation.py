@@ -203,23 +203,24 @@ def back_propagation(train, test, l_rate, n_epoch, n_hidden):
  
 
 def simulation():
-    seed(1)
-    # load and prepare data
-    filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
-    dataset = load_csv(filename)
-    for i in range(len(dataset[0])-1):
-        str_column_to_float(dataset, i)
-    # convert class column to integers
-    str_column_to_int(dataset, len(dataset[0])-1)
-    # normalize input variables
-    minmax = dataset_minmax(dataset)
-    normalize_dataset(dataset, minmax)
-    # evaluate algorithm
-    n_folds = 5
-    l_rate = 0.3
-    n_epoch = 500
-    n_hidden = 5
-    evaluate_algorithm(dataset, back_propagation, n_folds, l_rate, n_epoch, n_hidden)
+	seed(1)
+	# load and prepare data
+	filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
+	dataset = load_csv(filename)
+	for i in range(len(dataset[0])-1):
+		str_column_to_float(dataset, i)
+	# convert class column to integers
+	str_column_to_int(dataset, len(dataset[0])-1)
+	# normalize input variables
+	minmax = dataset_minmax(dataset)
+	normalize_dataset(dataset, minmax)
+	# evaluate algorithm
+	print(dataset)
+	n_folds = 5
+	l_rate = 0.3
+	n_epoch = 500
+	n_hidden = 5
+	evaluate_algorithm(dataset, back_propagation, n_folds, l_rate, n_epoch, n_hidden)
     
 if __name__ == '__main__':
     simulation()    

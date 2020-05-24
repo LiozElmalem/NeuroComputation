@@ -1,6 +1,46 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from random import seed
+from csv import reader
 from matplotlib.widgets import Button
+
+def load_csv(filename):
+	dataset = list()
+	with open(filename, 'r') as file:
+		csv_reader = reader(file)
+		for row in csv_reader:
+			if not row:
+				continue
+			dataset.append(row)
+	return dataset
+ 
+# Convert string column to float
+def str_column_to_float(dataset, column):
+	for row in dataset:
+		row[column] = float(row[column].strip())
+ 
+# Convert string column to integer
+def str_column_to_int(dataset, column):
+	class_values = [row[column] for row in dataset]
+	unique = set(class_values)
+	lookup = dict()
+	for i, value in enumerate(unique):
+		lookup[value] = i
+	for row in dataset:
+		row[column] = lookup[row[column]]
+	return lookup
+ 
+# Find the min and max values for each column
+def dataset_minmax(dataset):
+	minmax = list()
+	stats = [[min(column), max(column)] for column in zip(*dataset)]
+	return stats
+ 
+# Rescale dataset columns to the range 0-1
+def normalize_dataset(dataset, minmax):
+	for row in dataset:
+		for i in range(len(row)-1):
+			row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
 
 def rand_bin_array(K, N):
     arr = np.zeros(N)
@@ -10,12 +50,6 @@ def rand_bin_array(K, N):
 
 def printList(freeText , mylist):
     print (freeText , '[%s]' % ', '.join(map(str, mylist)))
-
-def init(dimension , amount):
-    data = np.random.rand(amount,dimension)
-    targets = rand_bin_array(amount // 2 , amount)
-    W = np.random.rand(dimension)
-    return [data , targets , W]
 
 def activation(W , input_ , bias , treshold):
     y = 0
@@ -40,7 +74,7 @@ def Exit(event):
     exit(1)
 
 def plot(A , B , title , iterationNo , W , errors):
-    plt.plot(A, B)
+    plt.plot(A,B)
     plt.ylabel('Targets')
     plt.xlabel('Outputs')
     plt.title(title + ' iteration No. ' + str(iterationNo) + ' total mean square error ' + str(errors))
@@ -68,41 +102,51 @@ def convergence(targets , outputs):
 
 def adaline(W , inputs , outputs , learning_rate , iterationAmount , treshold , bias):
     for i in range(iterationAmount):
-        errors = 0
+        totalErrors = 0
+        errors = []
         my_outputs = []        
         for x , target in zip(inputs , outputs):
             activate = activation(W , x , bias , treshold)
             my_outputs.append(activate)
             error = target - activate
-            errors += (error * error) # Mean square error
+            totalErrors += (error * error) # Mean square error
             update(W , learning_rate , error , x , bias)
-        printList('Iteration ' + str(i) + ' W : ' , W)  
-        if(i % (iterationAmount / 10) == 0):
-            plot(my_outputs , outputs , 'Adaline simulation' , i , W , errors)
+        if(i % 100 == 0):
+            printList('Iteration ' + str(i) + ' W : ' , W)  
+            plot(my_outputs , outputs , 'Adaline simulation' , i , W , totalErrors)
         if(convergence(outputs , my_outputs)):
-            plot(my_outputs , outputs , 'Adaline simulation' , i , W , errors)
+            plot(my_outputs , outputs , 'Adaline simulation' , i , W , totalErrors)
             print('The algorithm simulation arrived to convergence')
             exit(1)    
-    return errors        
+        errors.append(totalErrors)
 
 def simulation():
-    # data_ = init(5 , 50)
-
-    # W = data_[2]
-    # outputs = data_[1]
-    # inputs = data_[0]
+    seed(1)
+    # load and prepare data
+    filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
+    dataset = load_csv(filename)
+    for i in range(len(dataset[0])-1):
+        str_column_to_float(dataset, i)
+    # convert class column to integers
+    str_column_to_int(dataset, len(dataset[0])-1)
+    # normalize input variables
+    minmax = dataset_minmax(dataset)
+    normalize_dataset(dataset, minmax)
     learning_rate = 0.1
-    treshold = 0.5
-    bias = 0.1
-    W = [0.5 , 0.5]
-    inputs = [
-        [0 , 0],
-        [0 , 1],
-        [1 , 0],
-        [1 , 1]
-    ]
-    outputs = [0 , 0 , 0 , 1]
-    adaline(W , inputs , outputs , learning_rate , 100 , treshold , bias)
+    treshold = 1
+    bias = 1
+    W = np.random.rand(2)
+    inputs = []
+    outputs = []
+    for item in dataset:
+        inputs.append(item[:2])
+        outputs.append(item[len(item)-1])
+    print('inputs ' , inputs)
+    print('outputs , ' , outputs)
+    for i in range(len(outputs)):
+        if(outputs[i] == 2):
+            outputs[i] = 0
+    adaline(W , inputs , outputs , learning_rate , 1000 , treshold , bias)
 
 if __name__ == '__main__':
     simulation()    
