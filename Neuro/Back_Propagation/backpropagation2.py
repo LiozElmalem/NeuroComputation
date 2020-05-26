@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 from math import exp
  
- 
+
 def on_click(event):
     if event.dblclick:
         exit(0)
