@@ -197,7 +197,7 @@ def normalize_dataset(dataset, minmax):
 			row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
 
 def getSeedDataSet():
-    filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
+    filename = './seeds_dataset.csv'
     dataset = load_csv(filename)
     for i in range(len(dataset[0])-1):
         str_column_to_float(dataset, i)
@@ -214,7 +214,7 @@ def generate(test , train):
 	for i in range(len(dataset)):
 		pat.append([dataset[i][:2] , dataset[i][7:]])
 	random.shuffle(pat)
-	split = splitData(dataset,test,train)
+	splitData(dataset,test,train)
 	return pat
 
 
@@ -240,7 +240,7 @@ def main():
 	train = []
 	pattern = generate(test , train)
 	newNeural = Neural()
-	newNeural.train(pattern,10000)
+	newNeural.train(pattern,500)
 	newNeural.test(pattern)
 
 if __name__ == "__main__":

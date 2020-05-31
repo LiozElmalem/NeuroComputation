@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+import timeit as time
+import pandas as pd
 from random import seed
 from csv import reader
 
@@ -44,10 +46,10 @@ def normalize_dataset(dataset, minmax):
 			row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
 
 def treshold(x):
-    if (x > 0):
+    if (x >= 0):
         return 1
     else:
-        return 0
+        return -1
 
 def adaline(iterationAmount , INPUTS, OUTPUTS , WEIGHTS,errors,LEARNING_RATE):
     accuracy = 0
@@ -87,7 +89,7 @@ def adaline(iterationAmount , INPUTS, OUTPUTS , WEIGHTS,errors,LEARNING_RATE):
             accuracy += 1 
 
         print ("Actual ", ADALINE_OUTPUT, "Desired ", desired)
-    print('Accuary : ' , accuracy / len(OUTPUTS))
+    print('Accuary : ' , accuracy / (float)(len(OUTPUTS)))
 
 def show(errors):
     # Plot the errors to see how we did during training
@@ -102,31 +104,20 @@ def show(errors):
 
 def simulation():
     seed(1)
-    # load and prepare data
-    filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
-    dataset = load_csv(filename)
-    for i in range(len(dataset[0])-1):
-        str_column_to_float(dataset, i)
-    # convert class column to integers
-    str_column_to_int(dataset, len(dataset[0])-1)
-    # normalize input variables
-    minmax = dataset_minmax(dataset)
-    normalize_dataset(dataset, minmax)
-    INPUTS = []
-    OUTPUTS = []
-    filedsAmount = 7
-    for item in dataset:
-        INPUTS.append(item[:filedsAmount])
-        OUTPUTS.append(item[len(item)-1])
-    for output in OUTPUTS:
-        if(output == 2):
-            output = 0  
+    start = time.default_timer()
+    df = pd.read_csv('./wpbc.data', header=None)
+    OUTPUTS = df.iloc[0:197, 1].values
+    OUTPUTS = np.where(OUTPUTS == 'N', -1, 1)
+    INPUTS = df.iloc[0:197, [7,10]].values
+    filedsAmount = 2
     np.random.seed(1)
     WEIGHTS = 2 * np.random.random((filedsAmount,1)) - 1
     print ("Random Weights before training", WEIGHTS)
     LEARNING_RATE = 0.2
     errors = []
     adaline(1000 , INPUTS, OUTPUTS , WEIGHTS , errors,LEARNING_RATE)
+    end = time.default_timer()
+    print('Time : ' , end - start)
     show(errors)
 
 if __name__ == '__main__':

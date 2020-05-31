@@ -1,9 +1,3 @@
-"""
-Title: Very simple ADALINE network
-Author: Stephen Sheridan (ITB) https://github.com/stephensheridan
-Date: 09/03/2017
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 import math
@@ -15,12 +9,7 @@ def step(x):
     if (x > 0):
         return 1
     else:
-        return -1;
-    
-"""
-You can comment out either the first or second problem to see how the ADALINE network performs with
-linearly separable and non linearly separable problems.
-"""
+        return -1
 
 # F I R S T   P R O B L E M - L O G I C A L   O R   L I N E A R
 # input dataset representing the logical OR operator (including constant BIAS input of 1)

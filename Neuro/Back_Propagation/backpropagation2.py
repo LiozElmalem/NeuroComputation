@@ -205,7 +205,7 @@ def back_propagation(train, test, l_rate, n_epoch, n_hidden):
 def simulation():
 	seed(1)
 	# load and prepare data
-	filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
+	filename = './seeds_dataset.csv'
 	dataset = load_csv(filename)
 	for i in range(len(dataset[0])-1):
 		str_column_to_float(dataset, i)
@@ -215,7 +215,6 @@ def simulation():
 	minmax = dataset_minmax(dataset)
 	normalize_dataset(dataset, minmax)
 	# evaluate algorithm	
-	print(dataset)
 	n_folds = 5
 	l_rate = 0.3
 	n_epoch = 500

@@ -1,8 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+import math
 from random import seed
 from csv import reader
-from matplotlib.widgets import Button
 
 def load_csv(filename):
 	dataset = list()
@@ -21,14 +21,14 @@ def str_column_to_float(dataset, column):
  
 # Convert string column to integer
 def str_column_to_int(dataset, column):
-	class_values = [row[column] for row in dataset]
-	unique = set(class_values)
-	lookup = dict()
-	for i, value in enumerate(unique):
-		lookup[value] = i
-	for row in dataset:
-		row[column] = lookup[row[column]]
-	return lookup
+    class_values = [row[column] for row in dataset]
+    unique = set(class_values)
+    lookup = dict()
+    for i, value in enumerate(unique):
+        lookup[value] = i
+    for row in dataset:
+        row[column] = lookup[row[column]]
+    return lookup
  
 # Find the min and max values for each column
 def dataset_minmax(dataset):
@@ -42,88 +42,67 @@ def normalize_dataset(dataset, minmax):
 		for i in range(len(row)-1):
 			row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
 
-def rand_bin_array(K, N):
-    arr = np.zeros(N)
-    arr[:K]  = 1
-    np.random.shuffle(arr)
-    return arr    
-
-def printList(freeText , mylist):
-    print (freeText , '[%s]' % ', '.join(map(str, mylist)))
-
-def activation(W , input_ , bias , treshold):
-    y = 0
-    for x , weight in zip(input_ , W):
-        y += x * weight 
-    y += bias    
-    if(y >= treshold):
+def treshold(x):
+    if (x > -1):
         return 1
     else:
-        return 0    
+        return 0
 
-def update(W , learning_rate , error , input_ , bias):    
-    for i in range(len(W)):
-        W[i] = W[i] + (learning_rate * error * input_[i])
-    bias = bias + (learning_rate * error)
+def adaline(iterationAmount , INPUTS, OUTPUTS , WEIGHTS,errors,LEARNING_RATE):
+    accuracy = 0
+    for iter in range(iterationAmount):
 
-def on_click(event):
-    if event.dblclick:
-      exit(0)
+        for input_item,desired in zip(INPUTS, OUTPUTS):
+        
+            # Feed this input forward and calculate the ADALINE output
+            ADALINE_OUTPUT = 0
+            for i in range(len(input_item)):
+                ADALINE_OUTPUT += (input_item[i] * WEIGHTS[i])
 
-def Exit(event):
-    exit(1)
+            # Run ADALINE_OUTPUT through the step function
+            ADALINE_OUTPUT = treshold(ADALINE_OUTPUT)
 
-def plot(A , B , title , iterationNo , W , errors):
-    plt.plot(A,B)
-    plt.ylabel('Targets')
-    plt.xlabel('Outputs')
-    plt.title(title + ' iteration No. ' + str(iterationNo) + ' total mean square error ' + str(errors))
-    plt.connect('button_press_event', on_click)
-    button_position = plt.axes([0.9, 0.0, 0.1, 0.075])
-    button = Button(button_position, 'Exit', color='lightblue', hovercolor='lightgreen')
-    button.on_clicked(Exit)
-    plt.show()  
+            # Calculate the ERROR generated
+            ERROR = desired - ADALINE_OUTPUT
+            
+            # Store the ERROR
+            errors.append(ERROR)
+            
+            # Update the weights based on the delta rule
+            for i in range(len(WEIGHTS)):
+                WEIGHTS[i] = WEIGHTS[i] + LEARNING_RATE * ERROR * input_item[i]
 
-def test(outputs , W , inputs , treshold,bias):
-    positives = 0
-    for i , j in zip(inputs , outputs):
-        y = activation(W , i , bias , treshold)
-        if(y == j):
-            positives += 1
-    accuary = positives / len(inputs)        
-    return accuary
+    print ("New Weights after training", WEIGHTS)
+    for input_item,desired in zip(INPUTS, OUTPUTS):
+    # Feed this input forward and calculate the ADALINE output
+        ADALINE_OUTPUT = 0
+        for i in range(len(input_item)):
+            ADALINE_OUTPUT += (input_item[i] * WEIGHTS[i])
 
-def convergence(targets , outputs):
-    flag = True
-    for i in range(len(targets)):
-        if(targets[i] != outputs[i]):
-            flag = False
-    return flag
+    # Run ADALINE_OUTPUT through the step function
+        ADALINE_OUTPUT = treshold(ADALINE_OUTPUT)
 
-def adaline(W , inputs , outputs , learning_rate , iterationAmount , treshold , bias):
-    for i in range(iterationAmount):
-        totalErrors = 0
-        errors = []
-        my_outputs = []        
-        for x , target in zip(inputs , outputs):
-            activate = activation(W , x , bias , treshold)
-            my_outputs.append(activate)
-            error = target - activate
-            totalErrors += (error * error) # Mean square error
-            update(W , learning_rate , error , x , bias)
-        if(i % 100 == 0):
-            printList('Iteration ' + str(i) + ' W : ' , W)  
-            plot(my_outputs , outputs , 'Adaline simulation' , i , W , totalErrors)
-        if(convergence(outputs , my_outputs)):
-            plot(my_outputs , outputs , 'Adaline simulation' , i , W , totalErrors)
-            print('The algorithm simulation arrived to convergence')
-            exit(1)    
-        errors.append(totalErrors)
+        if(ADALINE_OUTPUT == desired):
+            accuracy += 1 
+
+        print ("Actual ", ADALINE_OUTPUT, "Desired ", desired)
+    print('Accuary ' , (accuracy /((float) (len(OUTPUTS)))))
+
+def show(errors):
+    # Plot the errors to see how we did during training
+    ax = plt.subplot(111)
+    ax.plot(errors, c='#aaaaff', label='Training Errors')
+    ax.set_xscale("log")
+    plt.title("ADALINE Errors")
+    plt.legend()
+    plt.xlabel('Error')
+    plt.ylabel('Value')
+    plt.show()
 
 def simulation():
     seed(1)
     # load and prepare data
-    filename = 'C://Users//user//Desktop//Lioz//Neuro//Back_Propagation//seeds_dataset.csv'
+    filename = './seeds_dataset.csv'
     dataset = load_csv(filename)
     for i in range(len(dataset[0])-1):
         str_column_to_float(dataset, i)
@@ -132,21 +111,23 @@ def simulation():
     # normalize input variables
     minmax = dataset_minmax(dataset)
     normalize_dataset(dataset, minmax)
-    learning_rate = 0.1
-    treshold = 1
-    bias = 1
-    W = np.random.rand(2)
-    inputs = []
-    outputs = []
+    INPUTS = []
+    OUTPUTS = []
+    filedsAmount = 7
     for item in dataset:
-        inputs.append(item[:2])
-        outputs.append(item[len(item)-1])
-    print('inputs ' , inputs)
-    print('outputs , ' , outputs)
-    for i in range(len(outputs)):
-        if(outputs[i] == 2):
-            outputs[i] = 0
-    adaline(W , inputs , outputs , learning_rate , 1000 , treshold , bias)
+        INPUTS.append(item[:filedsAmount])
+        OUTPUTS.append(item[len(item)-1])
+    for i in range(len(OUTPUTS)):
+        if(OUTPUTS[i] == 0):
+            OUTPUTS[i] = 0  
+    np.random.seed(1)
+    WEIGHTS = 2 * np.random.random((filedsAmount,1)) - 1
+    print ("Random Weights before training", WEIGHTS)
+    LEARNING_RATE = 0.5
+    errors = []
+    adaline(1000 , INPUTS , OUTPUTS , WEIGHTS , errors , LEARNING_RATE)
+    show(errors)
 
 if __name__ == '__main__':
     simulation()    
+
