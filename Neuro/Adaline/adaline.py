@@ -1,133 +1,82 @@
-import numpy as np
-import matplotlib.pyplot as plt
+import pandas as pd
 import math
-from random import seed
-from csv import reader
+import random
+import numpy as np
+import timeit
+import matplotlib.pyplot as plt
 
-def load_csv(filename):
-	dataset = list()
-	with open(filename, 'r') as file:
-		csv_reader = reader(file)
-		for row in csv_reader:
-			if not row:
-				continue
-			dataset.append(row)
-	return dataset
- 
-# Convert string column to float
-def str_column_to_float(dataset, column):
-	for row in dataset:
-		row[column] = float(row[column].strip())
- 
-# Convert string column to integer
-def str_column_to_int(dataset, column):
-    class_values = [row[column] for row in dataset]
-    unique = set(class_values)
-    lookup = dict()
-    for i, value in enumerate(unique):
-        lookup[value] = i
-    for row in dataset:
-        row[column] = lookup[row[column]]
-    return lookup
- 
-# Find the min and max values for each column
-def dataset_minmax(dataset):
-	minmax = list()
-	stats = [[min(column), max(column)] for column in zip(*dataset)]
-	return stats
- 
-# Rescale dataset columns to the range 0-1
-def normalize_dataset(dataset, minmax):
-	for row in dataset:
-		for i in range(len(row)-1):
-			row[i] = (row[i] - minmax[i][0]) / (minmax[i][1] - minmax[i][0])
+class Adaline:
+    def __init__(self , weights , bias = 0.1 , alpha = 0.1):
+        self.weights = weights
+        self.bias = bias
+        self.alpha = alpha
 
-def treshold(x):
-    if (x > -1):
-        return 1
-    else:
-        return 0
+    def treshold(self,x):
+        return 1 if x >= 0 else -1
 
-def adaline(iterationAmount , INPUTS, OUTPUTS , WEIGHTS,errors,LEARNING_RATE):
-    accuracy = 0
-    for iter in range(iterationAmount):
+    def activate(self , item):
+        return np.dot(item,self.weights) + self.bias
 
-        for input_item,desired in zip(INPUTS, OUTPUTS):
-        
-            # Feed this input forward and calculate the ADALINE output
-            ADALINE_OUTPUT = 0
-            for i in range(len(input_item)):
-                ADALINE_OUTPUT += (input_item[i] * WEIGHTS[i])
+    def update(self , error , data):
+        self.weights += self.alpha * data.T.dot(error)
+        self.bias += (self.alpha * error)
 
-            # Run ADALINE_OUTPUT through the step function
-            ADALINE_OUTPUT = treshold(ADALINE_OUTPUT)
+    def train(self , epochs , INPUTS , OUTPUTS):
+        i = 0
+        acc = []
+        while(i < epochs):
+            errors = 0
+            for item , target in zip(INPUTS , OUTPUTS):
+                error = (target - self.activate(item))
+                self.update(error , item)
+                errors += (error**2)
+            i += 1    
+            acc.append(errors / 2.0)
+        plt.plot(acc)
+        plt.title('Adaline simulation on WPBC')
+        plt.xlabel('Iterations')
+        plt.ylabel('Mean squared error')
+        plt.show()
 
-            # Calculate the ERROR generated
-            ERROR = desired - ADALINE_OUTPUT
-            
-            # Store the ERROR
-            errors.append(ERROR)
-            
-            # Update the weights based on the delta rule
-            for i in range(len(WEIGHTS)):
-                WEIGHTS[i] = WEIGHTS[i] + LEARNING_RATE * ERROR * input_item[i]
+    def test(self , INPUTS , OUTPUTS):
+        accuracy = 0
+        for i in range(len(OUTPUTS)):
+            if(self.treshold(self.activate(INPUTS[i])) == OUTPUTS[i]):
+                accuracy += 1 
+        return accuracy / (float)(len(OUTPUTS)) 
 
-    print ("New Weights after training", WEIGHTS)
-    for input_item,desired in zip(INPUTS, OUTPUTS):
-    # Feed this input forward and calculate the ADALINE output
-        ADALINE_OUTPUT = 0
-        for i in range(len(input_item)):
-            ADALINE_OUTPUT += (input_item[i] * WEIGHTS[i])
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))
 
-    # Run ADALINE_OUTPUT through the step function
-        ADALINE_OUTPUT = treshold(ADALINE_OUTPUT)
+def main():
 
-        if(ADALINE_OUTPUT == desired):
-            accuracy += 1 
+    df = pd.read_csv('./wpbc.data', header=None)
+    start = 7
+    fildes_num = 8 
 
-        print ("Actual ", ADALINE_OUTPUT, "Desired ", desired)
-    print('Accuary ' , (accuracy /((float) (len(OUTPUTS)))))
+    test_percent = 0.50
+    test_size = int(test_percent * (197))
+    train_size = 197 - test_size
 
-def show(errors):
-    # Plot the errors to see how we did during training
-    ax = plt.subplot(111)
-    ax.plot(errors, c='#aaaaff', label='Training Errors')
-    ax.set_xscale("log")
-    plt.title("ADALINE Errors")
-    plt.legend()
-    plt.xlabel('Error')
-    plt.ylabel('Value')
-    plt.show()
+    train_outputs = df.iloc[:train_size, 1].values
+    train_outputs = np.where(train_outputs == 'N', -1, 1)
+    train_inputs = df.iloc[:train_size, start:(start + fildes_num)].values
 
-def simulation():
-    seed(1)
-    # load and prepare data
-    filename = './seeds_dataset.csv'
-    dataset = load_csv(filename)
-    for i in range(len(dataset[0])-1):
-        str_column_to_float(dataset, i)
-    # convert class column to integers
-    str_column_to_int(dataset, len(dataset[0])-1)
-    # normalize input variables
-    minmax = dataset_minmax(dataset)
-    normalize_dataset(dataset, minmax)
-    INPUTS = []
-    OUTPUTS = []
-    filedsAmount = 7
-    for item in dataset:
-        INPUTS.append(item[:filedsAmount])
-        OUTPUTS.append(item[len(item)-1])
-    for i in range(len(OUTPUTS)):
-        if(OUTPUTS[i] == 0):
-            OUTPUTS[i] = 0  
-    np.random.seed(1)
-    WEIGHTS = 2 * np.random.random((filedsAmount,1)) - 1
-    print ("Random Weights before training", WEIGHTS)
-    LEARNING_RATE = 0.5
-    errors = []
-    adaline(1000 , INPUTS , OUTPUTS , WEIGHTS , errors , LEARNING_RATE)
-    show(errors)
+    test_outputs = df.iloc[train_size:(train_size + test_size), 1].values
+    test_outputs = np.where(test_outputs == 'N', -1, 1)
+    test_inputs = df.iloc[train_size:(train_size + test_size), start:(start + fildes_num)].values
+
+    ada = Adaline(weights = [0.1] * fildes_num , bias = 0.1 , alpha = 0.1)
+   
+    start = timeit.default_timer()
+
+    ada.train(100 ,train_inputs, train_outputs)
+
+    stop = timeit.default_timer()
+
+    print('Time ', stop - start)
+    
+    print('Accuracy ' , ada.test(test_inputs , test_outputs) * 100 , '%')
 
 if __name__ == '__main__':
-    simulation()    
-
+    main()
