@@ -181,11 +181,9 @@ def demo():
     # create a network with two input, two hidden, and one output nodes
     n = NN(2, 2, 1)
     # train it with some patterns
-    n.train(train_data , iterations=10000 , N=0.1 , M=0.1)
+    n.train(train_data , iterations=1000 , N=0.01 , M=0.1)
     # test it
     n.test(val_data)
-
-
 
 
 if __name__ == '__main__':
