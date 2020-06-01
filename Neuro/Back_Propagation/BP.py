@@ -2,6 +2,7 @@ import math
 import random
 from csv import reader
 import numpy as np
+import timeit
 import matplotlib.pyplot as plt
 
 random.seed(0)
@@ -123,7 +124,6 @@ class NN:
         for p in patterns:
             if((1 if self.update(p[0])[0] > 0.5 else -1) == p[1][0]):
                 acc += 1
-            print(p[0], '->', self.update(p[0]) , ' Belong : ' , p[1])
         print('Accuary ' , acc / float(len(patterns)) * 100 , '%')
 
     def weights(self):
@@ -138,6 +138,7 @@ class NN:
     def train(self, patterns, iterations=1000, N=0.1, M=0.1):
         # N: learning rate
         # M: momentum factor
+        start = timeit.default_timer()
         errors = []
         for i in range(iterations):
             error = 0.0
@@ -149,6 +150,8 @@ class NN:
             errors.append(error)
             if i % 100 == 0:
                 print('error %-.5f' % error)
+        stop = timeit.default_timer()
+        print('Train time ', stop - start)
         plt.title('Back propagation')
         plt.xlabel('Epochs')
         plt.ylabel('Mean square error')
@@ -171,16 +174,17 @@ def load_dataset(dataset_path, n_train_data , vars):
 
 def demo():
 
-    train_size = 132
+    train_size = 0.50
     fields = 3
     file_path = './wpbc.data'
-    train_data, val_data = load_dataset(file_path, train_size,fields)
+    train_data, val_data = load_dataset(file_path, int(train_size * 198),fields)
     # create a network with two input, two hidden, and one output nodes
     n = NN(2, 2, 1)
     # train it with some patterns
     n.train(train_data , iterations=10000 , N=0.1 , M=0.1)
     # test it
     n.test(val_data)
+
 
 
 
